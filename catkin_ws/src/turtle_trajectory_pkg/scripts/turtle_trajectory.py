@@ -61,6 +61,13 @@ def move_square(edge_length):
         rotate_angle(90)  # Rotate 90 degrees for each corner
     rospy.loginfo("Completed square trajectory")
 
+def move_triangle(side_length):
+    """Move the turtle in a triangle trajectory."""
+    for _ in range(3):  # A triangle has three sides
+        move_forward(side_length)
+        rotate_angle(120)  # Rotate 120 degrees for each corner
+    rospy.loginfo("Completed triangle trajectory")
+
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -84,7 +91,9 @@ def main_menu():
             
             elif choice == 2:
                 rospy.loginfo("Triangle trajectory selected")
-                # Placeholder for move_triangle()
+                side_length = float(input("Enter the side length of the triangle: "))
+                move_triangle(side_length)
+                
             elif choice == 3:
                 rospy.loginfo("Circular trajectory selected")
                 # Placeholder for move_circular()
