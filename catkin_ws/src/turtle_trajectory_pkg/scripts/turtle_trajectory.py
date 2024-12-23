@@ -132,6 +132,42 @@ def move_spiral(dr_increment=0.1, linear_speed=1.0):
 
     rospy.loginfo("Completed spiral trajectory")
 
+def move_point_to_point(target_x, target_y, linear_speed=1.0):
+    """
+    Move the turtle to a specific (x, y) point.
+    :param target_x: Target x-coordinate.
+    :param target_y: Target y-coordinate.
+    :param linear_speed: Speed of movement.
+    """
+    global cmd_vel_pub, current_pose
+    velocity_msg = Twist()
+    rate = rospy.Rate(10)  # 10 Hz
+
+    while not rospy.is_shutdown():
+        # Calculate distance and angle to the target
+        distance = math.sqrt((target_x - current_pose.x) ** 2 + (target_y - current_pose.y) ** 2)
+        angle_to_target = math.atan2(target_y - current_pose.y, target_x - current_pose.x)
+
+        # Adjust angular velocity to align with the target
+        velocity_msg.angular.z = 4 * (angle_to_target - current_pose.theta)
+
+        # Move forward if close to alignment
+        velocity_msg.linear.x = linear_speed if abs(angle_to_target - current_pose.theta) < 0.1 else 0
+
+        cmd_vel_pub.publish(velocity_msg)
+
+        if distance < 0.1:  # Stop if close to the target
+            break
+
+        rate.sleep()
+
+    # Stop the turtle
+    velocity_msg.linear.x = 0
+    velocity_msg.angular.z = 0
+    cmd_vel_pub.publish(velocity_msg)
+
+    rospy.loginfo(f"Reached target point ({target_x}, {target_y})")
+
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -167,10 +203,13 @@ def main_menu():
                 rospy.loginfo("Spiral trajectory selected")
                 dr_increment = float(input("Enter the radius increment per step: "))
                 move_spiral(dr_increment)
-                
+
             elif choice == 5:
                 rospy.loginfo("Point-to-Point trajectory selected")
-                # Placeholder for move_point_to_point()
+                target_x = float(input("Enter the target x-coordinate: "))
+                target_y = float(input("Enter the target y-coordinate: "))
+                move_point_to_point(target_x, target_y)
+                
             elif choice == 6:
                 rospy.loginfo("Zigzag trajectory selected")
                 # Placeholder for move_zigzag()
