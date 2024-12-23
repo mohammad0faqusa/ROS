@@ -1,6 +1,60 @@
 #!/usr/bin/env python3
 
-import rospy 
+import rospy
+import math
+from geometry_msgs.msg import Twist
+from turtlesim.msg import Pose
+
+# Globals
+cmd_vel_pub = None
+current_pose = None
+
+def pose_callback(pose):
+    """Callback function to update the current pose of the turtle."""
+    global current_pose
+    current_pose = pose
+
+def move_forward(distance, speed=1.0):
+    """Move the turtle forward a specified distance."""
+    global cmd_vel_pub, current_pose
+    velocity_msg = Twist()
+    rate = rospy.Rate(10)  # 10 Hz
+
+    start_x, start_y = current_pose.x, current_pose.y
+    velocity_msg.linear.x = speed
+
+    while not rospy.is_shutdown():
+        distance_moved = math.sqrt((current_pose.x - start_x) ** 2 +
+                                   (current_pose.y - start_y) ** 2)
+        if distance_moved >= distance:
+            break
+        cmd_vel_pub.publish(velocity_msg)
+        rate.sleep()
+
+    velocity_msg.linear.x = 0
+    cmd_vel_pub.publish(velocity_msg)
+
+def rotate_angle(angle_deg, angular_speed=30.0):
+    """Rotate the turtle by a specified angle."""
+    global cmd_vel_pub, current_pose
+    velocity_msg = Twist()
+    rate = rospy.Rate(10)  # 10 Hz
+
+    angle_rad = math.radians(angle_deg)
+    start_theta = current_pose.theta
+    velocity_msg.angular.z = math.radians(angular_speed) if angle_rad > 0 else -math.radians(angular_speed)
+
+    while not rospy.is_shutdown():
+        current_angle = abs(current_pose.theta - start_theta)
+        if current_angle >= abs(angle_rad):
+            break
+        cmd_vel_pub.publish(velocity_msg)
+        rate.sleep()
+
+    velocity_msg.angular.z = 0
+    cmd_vel_pub.publish(velocity_msg)
+
+
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -42,14 +96,21 @@ def main_menu():
         except ValueError:
             print("Invalid input. Please enter a valid number.")
 
+def main():
+    global cmd_vel_pub
 
-def main(): 
     rospy.init_node('turtle_trajectory', anonymous=True)
-    rospy.loginfo('Turtle trajectory initialized')
+    rospy.loginfo("Turtle Trajectory Node Initialized")
+
+    # Initialize the publisher for cmd_vel
+    cmd_vel_pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+
+    # Initialize the subscriber for pose updates
+    rospy.Subscriber('/turtle1/pose', Pose, pose_callback)
+
+    rospy.sleep(1)  # Wait for connections to establish
     main_menu()
 
 
-if __name__ == "__main__":
-    main() 
-
-
+if __name__ == '__main__':
+    main()
