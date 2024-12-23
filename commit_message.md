@@ -1,80 +1,118 @@
-### **Commit Message Explanation for Step 12: Implement Zigzag Trajectory**
-
-#### **What has been done?**
-
-In this step, the `move_zigzag` function was implemented in the `turtle_trajectory.py` script. This function enables the turtle to move in a zigzag trajectory based on user-defined parameters such as the length of each zig or zag, the angle of the zigzag, and the total number of zigs (and zags). The function was integrated into the main menu system so that users can select the zigzag trajectory as one of the options.
-
----
+### Explanation of Step 14: Implement Pause/Return-to-Menu Logic
 
 #### **Features Added**
 
-1. **Zigzag Motion Functionality** :
+1. **Pause Functionality** :
 
-* A new function, `move_zigzag`, was added to control the turtle's movement in a zigzag pattern.
-* Parameters allow for flexible customization of the zigzag motion:
-  * `zig_length`: The forward distance for each zig or zag.
-  * `zig_angle`: The angular turn for the zigzag motion.
-  * `zig_count`: The total number of zig motions (alternates between zig and zag).
+* Introduced the ability to pause the turtle’s trajectory and return to the main menu by pressing the `p` key during motion.
+* This functionality allows users to interrupt ongoing trajectories without waiting for them to complete.
 
-1. **User Interaction** :
+1. **Non-Blocking Input Handling** :
 
-* The menu was updated to include the zigzag option, allowing the user to provide inputs for `zig_length`, `zig_angle`, and `zig_count`.
-* The program validates the inputs and executes the zigzag motion.
+* Utilized Python's `select` module to implement non-blocking input detection.
+* This ensures the program continues to execute the trajectory logic while simultaneously checking for user input.
 
 ---
 
 #### **Purpose**
 
-The purpose of the zigzag trajectory is to provide a dynamic motion pattern that can simulate scenarios requiring alternating directional movement. This is useful in robotics for obstacle avoidance, search patterns, or demonstrations of complex motion paths.
+1. **User Control** :
+
+* The pause functionality provides users with greater control over the turtle's motion, enabling them to stop and change trajectories at any time.
+
+1. **Enhanced Interactivity** :
+
+* By allowing interruption, users can experiment with multiple trajectories without restarting the program.
 
 ---
 
 #### **How It Works**
 
-1. **User Input** :
+1. **Pause Key Detection** :
 
-* The user selects the "Zigzag" option from the main menu.
-* The program prompts the user to input the length of each zig or zag, the angle of the zigzag (in degrees), and the number of zigs.
-
-1. **Execution** :
-
-* The `move_zigzag` function moves the turtle forward by the specified `zig_length` and alternates the turn angle between `+zig_angle` and `-zig_angle` for each zigzag step.
-* The turtle repeats this motion for the specified number of zigs.
-
-1. **Code Highlights** :
+* The function `check_for_pause_key()` listens for the `p` key during motion. If detected, it breaks out of the motion loop.
+* This is achieved using the `select` module to check for user input with a short timeout, ensuring non-blocking behavior.
 
 ```python
-   def move_zigzag(zig_length, zig_angle, zig_count):
-       """
-       Move the turtle in a zigzag trajectory.
-       :param zig_length: Length of each zig or zag.
-       :param zig_angle: Angle between zig and zag.
-       :param zig_count: Total number of zigs (and zags).
-       """
-       for i in range(zig_count):
-           move_forward(zig_length)
-           if i % 2 == 0:
-               rotate_angle(zig_angle)  # Turn for zig
-           else:
-               rotate_angle(-zig_angle)  # Turn for zag
+   import select
+   import sys
 
-       rospy.loginfo(f"Completed zigzag trajectory with {zig_count} zigs.")
+   def check_for_pause_key():
+       """
+       Check if the user has pressed 'p' to pause the trajectory and return to the menu.
+       :return: True if 'p' is pressed, False otherwise.
+       """
+       print("Press 'p' to pause and return to the menu.")
+       i, _, _ = select.select([sys.stdin], [], [], 0.1)  # Wait for input for 0.1 seconds
+       if i:
+           key = sys.stdin.read(1)
+           if key == 'p':
+               rospy.loginfo("Pause key detected. Returning to menu.")
+               return True
+       return False
 ```
 
-1. **Menu Integration** :
+1. **Integration with Motion Functions** :
 
-* The zigzag option is added to the main menu:
-  ```python
-  elif choice == 6:
-      rospy.loginfo("Zigzag trajectory selected")
-      zig_length = float(input("Enter the length of each zig or zag: "))
-      zig_angle = float(input("Enter the angle of each zig or zag (degrees): "))
-      zig_count = int(input("Enter the number of zigs: "))
-      move_zigzag(zig_length, zig_angle, zig_count)
+* Each motion function (e.g., `move_forward`, `move_circular`) was modified to call `check_for_pause_key()` inside their loops.
+* If the `p` key is detected, the function breaks out of the loop and stops the turtle.
+
+   Example from `move_forward`:
+
+```python
+   def move_forward(distance, speed=1.0):
+       """Move the turtle forward a specified distance."""
+       global cmd_vel_pub, current_pose
+       velocity_msg = Twist()
+       rate = rospy.Rate(10)  # 10 Hz
+
+       start_x, start_y = current_pose.x, current_pose.y
+       velocity_msg.linear.x = speed
+
+       while not rospy.is_shutdown():
+           if check_for_pause_key():
+               break  # Exit the loop if 'p' is pressed
+
+           distance_moved = math.sqrt((current_pose.x - start_x) ** 2 +
+                                      (current_pose.y - start_y) ** 2)
+           if distance_moved >= distance:
+               break
+           cmd_vel_pub.publish(velocity_msg)
+           rate.sleep()
+
+       velocity_msg.linear.x = 0
+       cmd_vel_pub.publish(velocity_msg)
+```
+
+1. **User Prompt** :
+
+* While the turtle is in motion, a message is displayed: `"Press 'p' to pause and return to the menu."`
+* This prompt informs users of the pause functionality during trajectory execution.
+
+1. **README Update** :
+
+* Instructions about the pause functionality were added to the `README.md`:
+  ```markdown
+  ## Pause Functionality
+  During any trajectory, you can press `p` to pause the turtle's motion and return to the main menu.
   ```
 
-1. **Stopping Condition** :
+---
 
-* The turtle completes the zigzag motion after executing the specified number of zigs.
+#### **Code Added**
+
+1. `check_for_pause_key()` function:
+   * Implements the core logic for detecting the pause key.
+2. Integration into all motion functions:
+   * Functions like `move_forward`, `move_circular`, and others now include `check_for_pause_key()` to handle pausing.
+3. Updated README documentation.
 
 ---
+
+#### **Commit Message**
+
+`Add pause functionality using non-blocking input`
+
+---
+
+This explanation and details can be copied into a `commit_message.md` file. Would you like me to create it for you?

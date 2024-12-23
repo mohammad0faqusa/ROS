@@ -4,10 +4,36 @@ import rospy
 import math
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
+import select
+import sys
 
 # Globals
 cmd_vel_pub = None
 current_pose = None
+
+# Define boundaries
+X_MIN = 0.0
+X_MAX = 11.0
+Y_MIN = 0.0
+Y_MAX = 11.0
+
+def check_for_pause_key():
+    """
+    Check if the user has pressed 'p' to pause the trajectory and return to the menu.
+    :return: True if 'p' is pressed, False otherwise.
+    """
+    # print("Press 'p' to pause and return to the menu.")
+    i, _, _ = select.select([sys.stdin], [], [], 0.1)  # Wait for input for 0.1 seconds
+    if i:
+        key = sys.stdin.read(1)
+        if key == 'p':
+            rospy.loginfo("Pause key detected. Returning to menu.")
+            return True
+    return False
+
+def is_within_bounds(x, y):
+    """Check if the given (x, y) position is within the turtlesim boundaries."""
+    return X_MIN <= x <= X_MAX and Y_MIN <= y <= Y_MAX
 
 def pose_callback(pose):
     """Callback function to update the current pose of the turtle."""
@@ -15,7 +41,7 @@ def pose_callback(pose):
     current_pose = pose
 
 def move_forward(distance, speed=1.0):
-    """Move the turtle forward a specified distance."""
+    """Move the turtle forward a specified distance, ensuring it stays within bounds."""
     global cmd_vel_pub, current_pose
     velocity_msg = Twist()
     rate = rospy.Rate(10)  # 10 Hz
@@ -24,13 +50,26 @@ def move_forward(distance, speed=1.0):
     velocity_msg.linear.x = speed
 
     while not rospy.is_shutdown():
+        if check_for_pause_key():
+            break  # Exit the loop if 'p' is pressed
+
+        # Calculate the distance moved
         distance_moved = math.sqrt((current_pose.x - start_x) ** 2 +
                                    (current_pose.y - start_y) ** 2)
+
+        # Check if the turtle is within bounds
+        if not is_within_bounds(current_pose.x, current_pose.y):
+            rospy.logwarn("Turtle is out of bounds! Stopping forward movement.")
+            break
+
+        # Stop if the specified distance is covered
         if distance_moved >= distance:
             break
+
         cmd_vel_pub.publish(velocity_msg)
         rate.sleep()
 
+    # Stop the turtle
     velocity_msg.linear.x = 0
     cmd_vel_pub.publish(velocity_msg)
 
@@ -68,69 +107,111 @@ def move_triangle(side_length):
         rotate_angle(120)  # Rotate 120 degrees for each corner
     rospy.loginfo("Completed triangle trajectory")
 
-def move_circular(radius, linear_speed=1.0):
-    """Move the turtle in a circular trajectory."""
-    global cmd_vel_pub
-    velocity_msg = Twist()
-
-    angular_speed = linear_speed / radius  # Calculate angular speed
-    velocity_msg.linear.x = linear_speed
-    velocity_msg.angular.z = angular_speed
-
-    rate = rospy.Rate(10)  # 10 Hz
-    start_time = rospy.Time.now().to_sec()
-
-    # Run the loop for one complete circle
-    while not rospy.is_shutdown():
-        current_time = rospy.Time.now().to_sec()
-        elapsed_time = current_time - start_time
-        if elapsed_time >= (2 * math.pi * radius / linear_speed):  # Time to complete a circle
-            break
-        cmd_vel_pub.publish(velocity_msg)
-        rate.sleep()
-
-    # Stop the turtle
-    velocity_msg.linear.x = 0
-    velocity_msg.angular.z = 0
-    cmd_vel_pub.publish(velocity_msg)
-
-    rospy.loginfo("Completed circular trajectory")
-
 def move_spiral(dr_increment=0.1, linear_speed=1.0):
     """
     Move the turtle in a spiral trajectory.
     :param dr_increment: Increment of radius per loop iteration.
     :param linear_speed: Base linear speed of the turtle.
     """
-    global cmd_vel_pub
+    global cmd_vel_pub, current_pose
     velocity_msg = Twist()
 
-    rate = rospy.Rate(10)  # 10 Hz
-    radius = 0.5  # Start with a small radius
+    # Safety check to avoid dividing by zero if the radius gets too small.
+    # Also ensure the turtle won't spiral inward past radius = 0.
+    radius = max(0.5, 0.01)  # Start with a small but non-zero radius
 
+    rate = rospy.Rate(10)  # 10 Hz
     start_time = rospy.Time.now().to_sec()
 
     while not rospy.is_shutdown():
+        if check_for_pause_key():
+            break  # Exit the loop if 'p' is pressed
+
         current_time = rospy.Time.now().to_sec()
         elapsed_time = current_time - start_time
 
-        if elapsed_time > 20:  # Limit the spiral duration (e.g., 20 seconds)
+        # Limit the spiral duration, e.g. 20 seconds (adjust as needed)
+        if elapsed_time > 20:
+            rospy.loginfo("Reached time limit for spiral; stopping.")
             break
 
-        angular_speed = linear_speed / radius
+        # Calculate angular speed at the current radius
+        angular_speed = linear_speed / radius if radius != 0 else 0
+
+        # Prepare velocity message
         velocity_msg.linear.x = linear_speed
         velocity_msg.angular.z = angular_speed
 
+        # Check if the current position is within bounds
+        if not is_within_bounds(current_pose.x, current_pose.y):
+            rospy.logwarn("Turtle is out of bounds! Stopping spiral.")
+            break
+
+        # Publish velocity to move in a spiral
         cmd_vel_pub.publish(velocity_msg)
-        radius += dr_increment  # Increment radius
+
+        # Increment radius after each loop to expand the spiral
+        radius += dr_increment
+
+        # Safety check: prevent radius from dropping below a tiny threshold
+        if radius < 0.01:
+            rospy.logwarn("Radius has become too small! Adjusting to safe minimum.")
+            radius = 0.01
+
         rate.sleep()
 
-    # Stop the turtle
+    # Stop the turtle after completing or interrupting the spiral
     velocity_msg.linear.x = 0
     velocity_msg.angular.z = 0
     cmd_vel_pub.publish(velocity_msg)
 
-    rospy.loginfo("Completed spiral trajectory")
+    rospy.loginfo("Completed spiral trajectory (or stopped due to bounds/time).")
+
+
+def move_circular(radius, linear_speed=1.0):
+    """
+    Move the turtle in a circular trajectory, ensuring it stays within bounds.
+    :param radius: Radius of the circle.
+    :param linear_speed: Speed of the turtle.
+    """
+    global cmd_vel_pub, current_pose
+    velocity_msg = Twist()
+
+    # Calculate angular speed based on the radius
+    angular_speed = linear_speed / radius
+    velocity_msg.linear.x = linear_speed
+    velocity_msg.angular.z = angular_speed
+
+    rate = rospy.Rate(10)  # 10 Hz
+    start_time = rospy.Time.now().to_sec()
+
+    while not rospy.is_shutdown():
+        if check_for_pause_key():
+            break  # Exit the loop if 'p' is pressed
+
+        # Calculate elapsed time
+        current_time = rospy.Time.now().to_sec()
+        elapsed_time = current_time - start_time
+
+        # Check if one complete circle is completed
+        if elapsed_time >= (2 * math.pi * radius / linear_speed):
+            break
+
+        # Check if the current position is within bounds
+        if not is_within_bounds(current_pose.x, current_pose.y):
+            rospy.logwarn("Turtle is out of bounds! Stopping circular trajectory.")
+            break
+
+        # Publish velocity to continue circular motion
+        cmd_vel_pub.publish(velocity_msg)
+        rate.sleep()
+
+    # Stop the turtle after completing the circle or going out of bounds
+    velocity_msg.linear.x = 0
+    velocity_msg.angular.z = 0
+    cmd_vel_pub.publish(velocity_msg)
+
+    rospy.loginfo("Completed circular trajectory")
 
 def move_point_to_point(target_x, target_y, linear_speed=1.0):
     """
@@ -139,11 +220,18 @@ def move_point_to_point(target_x, target_y, linear_speed=1.0):
     :param target_y: Target y-coordinate.
     :param linear_speed: Speed of movement.
     """
+    if not is_within_bounds(target_x, target_y):
+        rospy.logwarn(f"Target point ({target_x}, {target_y}) is out of bounds!")
+        return
+
     global cmd_vel_pub, current_pose
     velocity_msg = Twist()
     rate = rospy.Rate(10)  # 10 Hz
 
     while not rospy.is_shutdown():
+        if check_for_pause_key():
+            break  # Exit the loop if 'p' is pressed
+
         # Calculate distance and angle to the target
         distance = math.sqrt((target_x - current_pose.x) ** 2 + (target_y - current_pose.y) ** 2)
         angle_to_target = math.atan2(target_y - current_pose.y, target_x - current_pose.x)
@@ -195,6 +283,7 @@ def main_menu():
         print("5. Point to Point")
         print("6. Zigzag")
         print("7. Exit")
+        print("8. You can enter (p) if you want to stop the turtule motion at any time")
 
         try:
             choice = int(input("Enter your choice (1-7): "))
@@ -216,7 +305,7 @@ def main_menu():
 
             elif choice == 4:
                 rospy.loginfo("Spiral trajectory selected")
-                dr_increment = float(input("Enter the radius increment per step: "))
+                dr_increment = float(input("Enter the radius increment per step: "))/100.0
                 move_spiral(dr_increment)
 
             elif choice == 5:
@@ -231,7 +320,7 @@ def main_menu():
                 zig_angle = float(input("Enter the angle of each zig or zag (degrees): "))
                 zig_count = int(input("Enter the number of zigs: "))
                 move_zigzag(zig_length, zig_angle, zig_count)
-                
+
             elif choice == 7:
                 rospy.loginfo("Exiting Turtle Trajectory Node.")
                 break
