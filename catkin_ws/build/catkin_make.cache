@@ -1,2 +1,2 @@
-
+turtle_trajectory_pkg
 -DCATKIN_DEVEL_PREFIX=/home/mohammad/ROS/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/mohammad/ROS/catkin_ws/install -G Unix Makefiles
