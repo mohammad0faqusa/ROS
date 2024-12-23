@@ -96,6 +96,42 @@ def move_circular(radius, linear_speed=1.0):
 
     rospy.loginfo("Completed circular trajectory")
 
+def move_spiral(dr_increment=0.1, linear_speed=1.0):
+    """
+    Move the turtle in a spiral trajectory.
+    :param dr_increment: Increment of radius per loop iteration.
+    :param linear_speed: Base linear speed of the turtle.
+    """
+    global cmd_vel_pub
+    velocity_msg = Twist()
+
+    rate = rospy.Rate(10)  # 10 Hz
+    radius = 0.5  # Start with a small radius
+
+    start_time = rospy.Time.now().to_sec()
+
+    while not rospy.is_shutdown():
+        current_time = rospy.Time.now().to_sec()
+        elapsed_time = current_time - start_time
+
+        if elapsed_time > 20:  # Limit the spiral duration (e.g., 20 seconds)
+            break
+
+        angular_speed = linear_speed / radius
+        velocity_msg.linear.x = linear_speed
+        velocity_msg.angular.z = angular_speed
+
+        cmd_vel_pub.publish(velocity_msg)
+        radius += dr_increment  # Increment radius
+        rate.sleep()
+
+    # Stop the turtle
+    velocity_msg.linear.x = 0
+    velocity_msg.angular.z = 0
+    cmd_vel_pub.publish(velocity_msg)
+
+    rospy.loginfo("Completed spiral trajectory")
+
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -126,10 +162,12 @@ def main_menu():
                 rospy.loginfo("Circular trajectory selected")
                 radius = float(input("Enter the radius of the circle: "))
                 move_circular(radius)
-                
+
             elif choice == 4:
                 rospy.loginfo("Spiral trajectory selected")
-                # Placeholder for move_spiral()
+                dr_increment = float(input("Enter the radius increment per step: "))
+                move_spiral(dr_increment)
+                
             elif choice == 5:
                 rospy.loginfo("Point-to-Point trajectory selected")
                 # Placeholder for move_point_to_point()

@@ -1,85 +1,89 @@
-### **Implement Circular Trajectory**
+### Explanation of Step 10: Implement Spiral Trajectory
+
+#### **Overview**
+
+In this step, we implemented the **spiral trajectory** feature for the Turtle Trajectory project. This feature allows the turtle to move in an outward spiral motion, starting from a small radius and gradually expanding its path as it moves forward. This is achieved by incrementally increasing the radius while maintaining a linear speed.
 
 ---
 
-#### **Features Added** :
+#### **Features Added**
 
-1. **Circular Motion** :
-
-* A function `move_circular(radius, linear_speed=1.0)` was added to enable the turtle to move in a perfect circular trajectory within the turtlesim environment.
-* Users can specify the **radius** of the circle, which dynamically determines the angular speed for the motion.
-* This feature calculates and completes one full circle based on the specified radius and speed.
-
-1. **Menu Integration** :
-
-* The **Circular** option was added to the menu. When selected, the user is prompted to input the desired circle radius. The `move_circular` function is then called to execute the motion.
+1. **Spiral Motion** : The turtle moves in a spiral trajectory with customizable radius increments.
+2. **Dynamic Radius Adjustment** : The radius increases in small increments (`dr_increment`) during each iteration, creating the spiral effect.
+3. **Duration Limit** : The spiral motion is limited by time to prevent indefinite execution.
+4. **Integration into the Menu** : Users can select the spiral trajectory from the main menu and specify the radius increment dynamically.
 
 ---
 
-#### **Purpose** :
+#### **Purpose**
 
-The circular trajectory is one of the most fundamental motion patterns in robotics. This feature simulates the turtle moving in a predefined circular path, which is useful for understanding and demonstrating:
+The spiral trajectory demonstrates the ability to:
 
-* Coordinated movement using linear and angular velocities.
-* Basics of controlling a robot's trajectory in ROS.
-
----
-
-#### **How It Works** :
-
-1. **Input Parameters** :
-
-* The function accepts a **radius** (distance from the center to the circular path) and an optional **linear speed** (default is 1.0).
-* The **angular speed** is calculated using the formula:
-  ```python
-  angular_speed = linear_speed / radius
-  ```
-
-1. **Publishing Velocities** :
-
-* The `cmd_vel` topic is used to send velocity commands to the turtle.
-* A `Twist` message is created where:
-  * `linear.x` is set to the linear speed.
-  * `angular.z` is set to the calculated angular speed.
-
-1. **Elapsed Time for One Circle** :
-
-* The total time to complete one circle is calculated as:
-  ```python
-  time_to_complete = 2 * math.pi * radius / linear_speed
-  ```
-* The function uses a loop to publish velocity commands until the elapsed time exceeds the computed `time_to_complete`.
-
-1. **Stopping the Turtle** :
-
-* After completing the circle, the turtle is stopped by publishing a `Twist` message with all velocities set to 0.
+1. Combine linear and angular velocities to produce complex motions.
+2. Allow dynamic trajectory adjustment (e.g., radius increment).
+3. Show how simple adjustments in velocity can create visually interesting patterns in robotic motion.
 
 ---
 
-#### **Code** :
+#### **How It Works**
 
-Here’s the core function for circular motion:
+1. The function `move_spiral(dr_increment, linear_speed)` takes two parameters:
+
+   * `dr_increment`: The amount by which the radius increases in each iteration.
+   * `linear_speed`: The speed at which the turtle moves forward.
+2. Angular speed (`angular_speed`) is calculated dynamically as:
+
+   ```python
+   angular_speed = linear_speed / radius
+   ```
+
+   This ensures the turtle moves in a consistent spiral pattern.
+3. The function publishes a `Twist` message to the `/turtle1/cmd_vel` topic at regular intervals using a loop, which:
+
+   * Sets the linear velocity (`velocity_msg.linear.x`).
+   * Sets the angular velocity (`velocity_msg.angular.z`).
+4. The radius is incremented in each iteration:
+
+   ```python
+   radius += dr_increment
+   ```
+5. The loop runs until a set duration (e.g., 20 seconds) is reached.
+6. After completing the trajectory, the turtle's motion stops by publishing a zero velocity.
+
+---
+
+#### **Key Code**
+
+Below is the core implementation of the spiral trajectory:
 
 ```python
-def move_circular(radius, linear_speed=1.0):
-    """Move the turtle in a circular trajectory."""
+def move_spiral(dr_increment=0.1, linear_speed=1.0):
+    """
+    Move the turtle in a spiral trajectory.
+    :param dr_increment: Increment of radius per loop iteration.
+    :param linear_speed: Base linear speed of the turtle.
+    """
     global cmd_vel_pub
     velocity_msg = Twist()
 
-    angular_speed = linear_speed / radius  # Calculate angular speed
-    velocity_msg.linear.x = linear_speed
-    velocity_msg.angular.z = angular_speed
-
     rate = rospy.Rate(10)  # 10 Hz
+    radius = 0.5  # Start with a small radius
+
     start_time = rospy.Time.now().to_sec()
 
-    # Run the loop for one complete circle
     while not rospy.is_shutdown():
         current_time = rospy.Time.now().to_sec()
         elapsed_time = current_time - start_time
-        if elapsed_time >= (2 * math.pi * radius / linear_speed):  # Time to complete a circle
+
+        if elapsed_time > 20:  # Limit the spiral duration (e.g., 20 seconds)
             break
+
+        angular_speed = linear_speed / radius
+        velocity_msg.linear.x = linear_speed
+        velocity_msg.angular.z = angular_speed
+
         cmd_vel_pub.publish(velocity_msg)
+        radius += dr_increment  # Increment radius
         rate.sleep()
 
     # Stop the turtle
@@ -87,35 +91,28 @@ def move_circular(radius, linear_speed=1.0):
     velocity_msg.angular.z = 0
     cmd_vel_pub.publish(velocity_msg)
 
-    rospy.loginfo("Completed circular trajectory")
+    rospy.loginfo("Completed spiral trajectory")
 ```
 
 ---
 
-#### **Menu Integration** :
+#### **Menu Integration**
 
-The `main_menu` function was updated to include the **Circular** option:
+The spiral trajectory is integrated into the main menu with the ability to input the radius increment (`dr_increment`):
 
 ```python
-elif choice == 3:
-    rospy.loginfo("Circular trajectory selected")
-    radius = float(input("Enter the radius of the circle: "))
-    move_circular(radius)
+elif choice == 4:
+    rospy.loginfo("Spiral trajectory selected")
+    dr_increment = float(input("Enter the radius increment per step: "))
+    move_spiral(dr_increment)
 ```
 
 ---
 
-#### **Testing** :
+#### **Testing**
 
-* After implementing, the functionality was tested by running the script, selecting the **Circular** option, and providing a radius (e.g., `2.0`).
-* Observed that the turtle completed a full circle as expected.
+* Select **Spiral** from the menu.
+* Enter a valid increment value (e.g., `0.2`).
+* Observe the turtle move outward in a smooth spiral pattern.
 
 ---
-
-#### **Commit Message** :
-
-`Implement move_circular function`
-
-* Added `move_circular` to enable the turtle to move in a circular trajectory based on user-defined radius and speed.
-* Updated `main_menu` to include an option for circular motion.
-* Calculated angular speed dynamically and completed the circle using elapsed time to ensure accuracy.
