@@ -1,118 +1,78 @@
-### Explanation of Step 14: Implement Pause/Return-to-Menu Logic
+### **Step 15 Explanation: Add Launch File**
+
+#### **What Has Been Done**
+
+In this step, we created a **ROS launch file** named `turtle_trajectory.launch` to streamline the process of running the turtlesim simulator and the trajectory controller node together. This file simplifies launching multiple nodes simultaneously with a single command, which is essential for maintaining workflow efficiency and reducing manual startup steps.
 
 #### **Features Added**
 
-1. **Pause Functionality** :
-
-* Introduced the ability to pause the turtle’s trajectory and return to the main menu by pressing the `p` key during motion.
-* This functionality allows users to interrupt ongoing trajectories without waiting for them to complete.
-
-1. **Non-Blocking Input Handling** :
-
-* Utilized Python's `select` module to implement non-blocking input detection.
-* This ensures the program continues to execute the trajectory logic while simultaneously checking for user input.
+1. **Launch File (`turtle_trajectory.launch`):**
+   * Starts the `turtlesim_node`, which simulates the turtle's environment.
+   * Starts the `turtle_trajectory.py` node from the `turtle_trajectory_pkg` package, which handles trajectory control.
+   * Includes configuration to run the Python script with the appropriate interpreter (`python3`).
+2. **README Update:**
+   * Added detailed instructions on how to use the new launch file to start the application.
 
 ---
 
-#### **Purpose**
+#### **Purpose of the Launch File**
 
-1. **User Control** :
-
-* The pause functionality provides users with greater control over the turtle's motion, enabling them to stop and change trajectories at any time.
-
-1. **Enhanced Interactivity** :
-
-* By allowing interruption, users can experiment with multiple trajectories without restarting the program.
+* **Simplifies Node Management:** Instead of manually launching the `turtlesim_node` and the `turtle_trajectory` node in separate terminals, the launch file starts both nodes automatically.
+* **Consistency:** Ensures both nodes are launched in the correct order with predefined settings.
+* **Ease of Use:** Reduces the risk of errors during node startup and makes it user-friendly for new users or testers.
 
 ---
 
 #### **How It Works**
 
-1. **Pause Key Detection** :
+The launch file contains two `<node>` elements:
 
-* The function `check_for_pause_key()` listens for the `p` key during motion. If detected, it breaks out of the motion loop.
-* This is achieved using the `select` module to check for user input with a short timeout, ensuring non-blocking behavior.
+1. **Turtlesim Node:**
 
-```python
-   import select
-   import sys
+   ```xml
+   <node pkg="turtlesim" type="turtlesim_node" name="turtlesim" output="screen"/>
+   ```
 
-   def check_for_pause_key():
-       """
-       Check if the user has pressed 'p' to pause the trajectory and return to the menu.
-       :return: True if 'p' is pressed, False otherwise.
-       """
-       print("Press 'p' to pause and return to the menu.")
-       i, _, _ = select.select([sys.stdin], [], [], 0.1)  # Wait for input for 0.1 seconds
-       if i:
-           key = sys.stdin.read(1)
-           if key == 'p':
-               rospy.loginfo("Pause key detected. Returning to menu.")
-               return True
-       return False
+   * **Package:** `turtlesim`
+   * **Node Type:** `turtlesim_node` (the binary file that simulates the turtle environment)
+   * **Name:** `turtlesim` (the node will be referred to with this name)
+   * **Output:** Sends log messages to the screen for visibility.
+2. **Turtle Trajectory Controller Node:**
+
+   ```xml
+   <node pkg="turtle_trajectory_pkg" type="turtle_trajectory.py" name="turtle_trajectory" output="screen" launch-prefix="python3"/>
+   ```
+
+   * **Package:** `turtle_trajectory_pkg`
+   * **Node Type:** `turtle_trajectory.py` (the Python script handling the trajectory logic)
+   * **Name:** `turtle_trajectory`
+   * **Output:** Sends log messages to the screen for visibility.
+   * **Launch Prefix:** Ensures the script runs with `python3`.
+
+---
+
+#### **Code Example: Launch File Content**
+
+```xml
+<launch>
+    <!-- Launch the turtlesim simulator -->
+    <node pkg="turtlesim" type="turtlesim_node" name="turtlesim" output="screen"/>
+
+    <!-- Launch the trajectory controller node -->
+    <node pkg="turtle_trajectory_pkg" type="turtle_trajectory.py" name="turtle_trajectory" output="screen" launch-prefix="python3"/>
+</launch>
 ```
 
-1. **Integration with Motion Functions** :
-
-* Each motion function (e.g., `move_forward`, `move_circular`) was modified to call `check_for_pause_key()` inside their loops.
-* If the `p` key is detected, the function breaks out of the loop and stops the turtle.
-
-   Example from `move_forward`:
-
-```python
-   def move_forward(distance, speed=1.0):
-       """Move the turtle forward a specified distance."""
-       global cmd_vel_pub, current_pose
-       velocity_msg = Twist()
-       rate = rospy.Rate(10)  # 10 Hz
-
-       start_x, start_y = current_pose.x, current_pose.y
-       velocity_msg.linear.x = speed
-
-       while not rospy.is_shutdown():
-           if check_for_pause_key():
-               break  # Exit the loop if 'p' is pressed
-
-           distance_moved = math.sqrt((current_pose.x - start_x) ** 2 +
-                                      (current_pose.y - start_y) ** 2)
-           if distance_moved >= distance:
-               break
-           cmd_vel_pub.publish(velocity_msg)
-           rate.sleep()
-
-       velocity_msg.linear.x = 0
-       cmd_vel_pub.publish(velocity_msg)
-```
-
-1. **User Prompt** :
-
-* While the turtle is in motion, a message is displayed: `"Press 'p' to pause and return to the menu."`
-* This prompt informs users of the pause functionality during trajectory execution.
-
-1. **README Update** :
-
-* Instructions about the pause functionality were added to the `README.md`:
-  ```markdown
-  ## Pause Functionality
-  During any trajectory, you can press `p` to pause the turtle's motion and return to the main menu.
-  ```
-
 ---
 
-#### **Code Added**
+#### **How to Use It**
 
-1. `check_for_pause_key()` function:
-   * Implements the core logic for detecting the pause key.
-2. Integration into all motion functions:
-   * Functions like `move_forward`, `move_circular`, and others now include `check_for_pause_key()` to handle pausing.
-3. Updated README documentation.
-
----
-
-#### **Commit Message**
-
-`Add pause functionality using non-blocking input`
+1. Run the following command to launch the application:
+   ```bash
+   roslaunch turtle_trajectory_pkg turtle_trajectory.launch
+   ```
+2. **Expected Behavior:**
+   * The `turtlesim_node` will start, displaying the turtle simulator window.
+   * The `turtle_trajectory` node will initialize, displaying the trajectory control menu in the terminal.
 
 ---
-
-This explanation and details can be copied into a `commit_message.md` file. Would you like me to create it for you?
