@@ -1,97 +1,80 @@
-### **Explanation for Step 11: Implement Point-to-Point Trajectory**
+### **Commit Message Explanation for Step 12: Implement Zigzag Trajectory**
 
-#### **Overview**
+#### **What has been done?**
 
-In this step, we added a feature that allows the turtle to move to a specific point `(x, y)` within the turtlesim simulation environment. The feature uses ROS topics to command the turtle's movement, aligning its orientation and adjusting its position to reach the target.
+In this step, the `move_zigzag` function was implemented in the `turtle_trajectory.py` script. This function enables the turtle to move in a zigzag trajectory based on user-defined parameters such as the length of each zig or zag, the angle of the zigzag, and the total number of zigs (and zags). The function was integrated into the main menu system so that users can select the zigzag trajectory as one of the options.
+
+---
 
 #### **Features Added**
 
-1. **Point-to-Point Trajectory** :
+1. **Zigzag Motion Functionality** :
 
-* Allows users to input a specific target `(x, y)` coordinate.
-* The turtle calculates the distance and angle required to align with the target and moves accordingly.
+* A new function, `move_zigzag`, was added to control the turtle's movement in a zigzag pattern.
+* Parameters allow for flexible customization of the zigzag motion:
+  * `zig_length`: The forward distance for each zig or zag.
+  * `zig_angle`: The angular turn for the zigzag motion.
+  * `zig_count`: The total number of zig motions (alternates between zig and zag).
 
-1. **Dynamic Alignment and Movement** :
+1. **User Interaction** :
 
-* The turtle continuously adjusts its angular velocity to face the target.
-* The linear velocity is applied only when the turtle is sufficiently aligned.
+* The menu was updated to include the zigzag option, allowing the user to provide inputs for `zig_length`, `zig_angle`, and `zig_count`.
+* The program validates the inputs and executes the zigzag motion.
+
+---
 
 #### **Purpose**
 
-The point-to-point trajectory feature provides a practical and precise way to move the turtle to any desired position in the simulation. This capability is essential for scenarios requiring navigation to specific coordinates, such as exploring a map or reaching a predefined destination.
+The purpose of the zigzag trajectory is to provide a dynamic motion pattern that can simulate scenarios requiring alternating directional movement. This is useful in robotics for obstacle avoidance, search patterns, or demonstrations of complex motion paths.
+
+---
 
 #### **How It Works**
 
 1. **User Input** :
 
-* The user selects the **Point-to-Point** option from the menu and enters the target `x` and `y` coordinates.
-* Example:
-  ```plaintext
-  Enter the target x-coordinate: 5.0
-  Enter the target y-coordinate: 5.0
+* The user selects the "Zigzag" option from the main menu.
+* The program prompts the user to input the length of each zig or zag, the angle of the zigzag (in degrees), and the number of zigs.
+
+1. **Execution** :
+
+* The `move_zigzag` function moves the turtle forward by the specified `zig_length` and alternates the turn angle between `+zig_angle` and `-zig_angle` for each zigzag step.
+* The turtle repeats this motion for the specified number of zigs.
+
+1. **Code Highlights** :
+
+```python
+   def move_zigzag(zig_length, zig_angle, zig_count):
+       """
+       Move the turtle in a zigzag trajectory.
+       :param zig_length: Length of each zig or zag.
+       :param zig_angle: Angle between zig and zag.
+       :param zig_count: Total number of zigs (and zags).
+       """
+       for i in range(zig_count):
+           move_forward(zig_length)
+           if i % 2 == 0:
+               rotate_angle(zig_angle)  # Turn for zig
+           else:
+               rotate_angle(-zig_angle)  # Turn for zag
+
+       rospy.loginfo(f"Completed zigzag trajectory with {zig_count} zigs.")
+```
+
+1. **Menu Integration** :
+
+* The zigzag option is added to the main menu:
+  ```python
+  elif choice == 6:
+      rospy.loginfo("Zigzag trajectory selected")
+      zig_length = float(input("Enter the length of each zig or zag: "))
+      zig_angle = float(input("Enter the angle of each zig or zag (degrees): "))
+      zig_count = int(input("Enter the number of zigs: "))
+      move_zigzag(zig_length, zig_angle, zig_count)
   ```
-
-1. **Calculation** :
-
-* The turtle calculates the **distance** and **angle to the target** based on its current position and orientation (`current_pose`).
-
-1. **Motion Control** :
-
-* **Angular Velocity** :
-  The turtle adjusts its angular velocity to align with the target:
-  ``python angle_to_target = math.atan2(target_y - current_pose.y, target_x - current_pose.x) velocity_msg.angular.z = 4 * (angle_to_target - current_pose.theta) ``
-* **Linear Velocity** :
-  Once aligned, the turtle moves forward toward the target:
-  ``python velocity_msg.linear.x = linear_speed if abs(angle_to_target - current_pose.theta) < 0.1 else 0 ``
 
 1. **Stopping Condition** :
 
-* The turtle stops when it reaches within 0.1 units of the target:
-  ```python
-  if distance < 0.1:
-      break
-  ```
+* The turtle completes the zigzag motion after executing the specified number of zigs.
 
-1. **Final Stop** :
-
-* The turtle's velocity is set to zero to halt all movement:
-  ```python
-  velocity_msg.linear.x = 0
-  velocity_msg.angular.z = 0
-  cmd_vel_pub.publish(velocity_msg)
-  ```
-
-#### **Code Snippet**
-
-```python
-def move_point_to_point(target_x, target_y, linear_speed=1.0):
-    """Move the turtle to a specific (x, y) point."""
-    global cmd_vel_pub, current_pose
-    velocity_msg = Twist()
-    rate = rospy.Rate(10)  # 10 Hz
-
-    while not rospy.is_shutdown():
-        # Calculate distance and angle to the target
-        distance = math.sqrt((target_x - current_pose.x) ** 2 + (target_y - current_pose.y) ** 2)
-        angle_to_target = math.atan2(target_y - current_pose.y, target_x - current_pose.x)
-
-        # Adjust angular velocity to align with the target
-        velocity_msg.angular.z = 4 * (angle_to_target - current_pose.theta)
-
-        # Move forward if close to alignment
-        velocity_msg.linear.x = linear_speed if abs(angle_to_target - current_pose.theta) < 0.1 else 0
-
-        cmd_vel_pub.publish(velocity_msg)
-
-        if distance < 0.1:  # Stop if close to the target
-            break
-
-        rate.sleep()
-
-    # Stop the turtle
-    velocity_msg.linear.x = 0
-    velocity_msg.angular.z = 0
-    cmd_vel_pub.publish(velocity_msg)
-
-    rospy.loginfo(f"Reached target point ({target_x}, {target_y})")
-```
+---

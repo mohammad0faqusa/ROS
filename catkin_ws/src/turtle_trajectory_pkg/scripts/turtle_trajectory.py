@@ -168,6 +168,21 @@ def move_point_to_point(target_x, target_y, linear_speed=1.0):
 
     rospy.loginfo(f"Reached target point ({target_x}, {target_y})")
 
+def move_zigzag(zig_length, zig_angle, zig_count):
+    """
+    Move the turtle in a zigzag trajectory.
+    :param zig_length: Length of each zig or zag.
+    :param zig_angle: Angle between zig and zag.
+    :param zig_count: Total number of zigs (and zags).
+    """
+    for i in range(zig_count):
+        move_forward(zig_length)
+        if i % 2 == 0:
+            rotate_angle(zig_angle)  # Turn for zig
+        else:
+            rotate_angle(-zig_angle)  # Turn for zag
+
+    rospy.loginfo(f"Completed zigzag trajectory with {zig_count} zigs.")
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -209,10 +224,14 @@ def main_menu():
                 target_x = float(input("Enter the target x-coordinate: "))
                 target_y = float(input("Enter the target y-coordinate: "))
                 move_point_to_point(target_x, target_y)
-                
+
             elif choice == 6:
                 rospy.loginfo("Zigzag trajectory selected")
-                # Placeholder for move_zigzag()
+                zig_length = float(input("Enter the length of each zig or zag: "))
+                zig_angle = float(input("Enter the angle of each zig or zag (degrees): "))
+                zig_count = int(input("Enter the number of zigs: "))
+                move_zigzag(zig_length, zig_angle, zig_count)
+                
             elif choice == 7:
                 rospy.loginfo("Exiting Turtle Trajectory Node.")
                 break
