@@ -1,12 +1,4 @@
-Below is an example of a **comprehensive project documentation** that includes:
 
-1. A **Table of Contents** to help readers navigate.
-2. References to a hypothetical `commit_message.md` file that details each commit’s content.
-3. An explanation of how to link between different **Markdown files** (including linking to specific commits in a GitHub repo).
-
-You can place this content in your main `README.md`, or in a dedicated `docs/ProjectDocumentation.md`, depending on your repository structure.
-
----
 
 # Turtle Trajectory Project
 
