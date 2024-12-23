@@ -1,109 +1,86 @@
-Here’s the content for your `commit_message.md` file:
+
+### **Commit Message for Step 4**
+
+`Add initial turtle_trajectory.py skeleton`
 
 ---
 
-# Add basic project structure, launch file, and README
+### **Detailed Steps and Explanations**
+
+1. **Create the Python Script** :
+
+```bash
+   nano turtle_trajectory.py
+```
+
+* **Explanation** : This command creates a new Python file called `turtle_trajectory.py`. This will be the main script that implements the logic for controlling the turtle's trajectory.
+
+1. **Add Basic Python Script Skeleton** :
+   Add the following code:
+
+```python
+   #!/usr/bin/env python3
+
+   import rospy
+
+   def main():
+       rospy.init_node('turtle_trajectory', anonymous=True)
+       rospy.loginfo("Turtle Trajectory Node Initialized")
+       rospy.spin()  # Keep the node running
+
+   if __name__ == '__main__':
+       main()
+```
+
+* **Explanation** :
+  * `#!/usr/bin/env python3`: Specifies the interpreter to execute the script (`python3`).
+  * `import rospy`: Imports the `rospy` library for writing ROS nodes in Python.
+  * `rospy.init_node('turtle_trajectory', anonymous=True)`: Initializes a ROS node named `turtle_trajectory`. The `anonymous=True` flag ensures unique node names if multiple instances are running.
+  * `rospy.loginfo("Turtle Trajectory Node Initialized")`: Logs a message to the console, confirming that the node has been successfully initialized.
+  * `rospy.spin()`: Keeps the node running until it is shut down (e.g., via Ctrl+C).
+  * The `main()` function encapsulates the core logic and is called when the script is executed.
+
+1. **Make the Script Executable** :
+
+```bash
+   chmod +x turtle_trajectory.py
+```
+
+* **Explanation** : The `chmod +x` command makes the script executable. This allows it to be run directly from the terminal without needing to prefix it with `python3`.
+
+1. **Test the Script** (Optional):
+   Run the script to verify that the node initializes successfully:
+
+   ```bash
+   rosrun turtle_trajectory_pkg turtle_trajectory.py
+   ```
+
+   * **Explanation** : This command runs the script using ROS's `rosrun` utility. You should see the log message: `Turtle Trajectory Node Initialized` in the console, indicating that the node is running.
+2. **Stage the Changes** :
+
+```bash
+   cd ~/catkin_ws
+   git add src/turtle_trajectory_pkg/scripts/turtle_trajectory.py
+```
+
+* **Explanation** : Adds the new `turtle_trajectory.py` file to the staging area, preparing it for the commit.
+
+1. **Commit the Changes** :
+
+```bash
+   git commit -m "Add initial turtle_trajectory.py skeleton"
+```
+
+* **Explanation** : Creates a commit with a clear message describing the addition of the initial Python script skeleton. This serves as a milestone in the project.
 
 ---
 
-### Step 3: Add Basic Project Structure, Launch File & README
+### **Why This Step is Important**
 
-#### Actions:
+* **Sets the Foundation** : The skeleton provides a structured starting point for further development, ensuring the ROS node is properly initialized.
+* **Allows Incremental Development** : Future enhancements, such as trajectory logic, can be added without reworking the basic structure.
+* **Ensures Compatibility** : By using `rospy` and adhering to ROS conventions, this script can seamlessly integrate with other ROS packages and tools.
 
-1. **Navigate to the Package Directory** :
+---
 
-```
-   cd ~/catkin_ws/src/turtle_trajectory_pkg
-```
-
-1. **Create Project Directories** :
-
-```
-   mkdir scripts launch
-   touch scripts/.gitkeep launch/.gitkeep
-```
-
-1. **Create a Basic Launch File** :
-
-```
-   nano launch/turtle_trajectory.launch
-```
-
-   Add the following content:
-
-```
-   <launch>
-       <node pkg="turtlesim" type="turtlesim_node" name="turtlesim" output="screen"/>
-   </launch>
-```
-
-1. **Test the Launch File** :
-
-* Build your workspace:
-  ```
-  cd ~/catkin_ws
-  catkin_make
-  ```
-* Source the workspace:
-  ```
-  source devel/setup.bash
-  ```
-* Test the launch file:
-  ```
-  roslaunch turtle_trajectory_pkg turtle_trajectory.launch
-  ```
-* Ensure that the `turtlesim` simulator runs successfully.
-
-1. **Create a Basic README.md** :
-
-```
-   nano README.md
-```
-
-   Add the following content:
-
-```
-   # Turtle Trajectory Controller
-
-   This package implements a ROS-based trajectory controller for the turtlesim simulator. Users can choose predefined trajectories (e.g., square, triangle, circular) or define custom point-to-point motions.
-
-   ## Project Structure
-   - **scripts/**: Contains Python scripts for trajectory control.
-   - **launch/**: Contains launch files for running the simulation and node.
-   - **README.md**: Project overview and usage instructions.
-
-   ## Prerequisites
-   - ROS installed on your system.
-   - `turtlesim` package installed.
-
-   ## Build Instructions
-   1. Navigate to the Catkin workspace:
-```
-
-   cd ~/catkin_ws
-
-```
-   2. Build the workspace:
-```
-
-   catkin_make
-
-```
-
-   ## Run Instructions
-   To launch the trajectory controller:
-```
-
-   roslaunch turtle_trajectory_pkg turtle_trajectory.launch
-
-```
-
-```
-
-1. **Stage and Commit the Changes** :
-
-```
-   cd ~/catkin_ws
-   git add src/turtle_trajectory_pkg/
-   git commit -m "Add basic project structure, launch file, and README"
-```
+Copy this into your `commit_message.md` file, and let me know if you'd like to adjust the format or content!
