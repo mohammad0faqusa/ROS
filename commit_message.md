@@ -1,227 +1,133 @@
 
 ---
 
-### **Sequence of Actions Implemented in Step 6**
+## **Commit Title: Implement move_square function**
 
-#### **1. Declared Global Variables**
+### **What Was Done:**
 
- **Code** :
+1. **Added a Function** :
 
-```python
-cmd_vel_pub = None
-current_pose = None
-```
+* Implemented the `move_square` function, which makes the turtle move in a square trajectory by combining straight-line movements and 90-degree rotations.
 
- **Explanation** :
+1. **Modified the Menu** :
 
-* **`cmd_vel_pub`** : A global variable to store the publisher for sending velocity commands to the `/turtle1/cmd_vel` topic.
-* **`current_pose`** : A global variable to store the current position and orientation of the turtle, updated by the `/turtle1/pose` subscriber.
+* Updated the `main_menu` function to allow users to select the "Square" trajectory and input the side length.
 
----
+1. **Tested the Functionality** :
 
-#### **2. Created `pose_callback` Function**
-
- **Code** :
-
-```python
-def pose_callback(pose):
-    """Callback function to update the current pose of the turtle."""
-    global current_pose
-    current_pose = pose
-```
-
- **Explanation** :
-
-* **Purpose** : This function updates the `current_pose` global variable with the latest `x`, `y`, and `theta` values from the `/turtle1/pose` topic.
-* **How It Works** :
-* Subscribes to the `/turtle1/pose` topic.
-* Automatically executed whenever a new `Pose` message is published.
+* Ran the script, selected the "Square" option, provided the side length, and verified the turtle moved in a square.
 
 ---
 
-#### **3. Implemented `move_forward` Function**
+### **Steps to Build**
 
- **Code** :
+#### **1. Adding the `move_square` Function**
+
+The function `move_square` was added to the script:
 
 ```python
-def move_forward(distance, speed=1.0):
-    """Move the turtle forward a specified distance."""
-    global cmd_vel_pub, current_pose
-    velocity_msg = Twist()
-    rate = rospy.Rate(10)  # 10 Hz
+def move_square(edge_length):
+    """Move the turtle in a square trajectory."""
+    for _ in range(4):  # A square has four sides
+        move_forward(edge_length)  # Move forward by the given edge length
+        rotate_angle(90)  # Rotate 90 degrees at each corner
+    rospy.loginfo("Completed square trajectory")
+```
 
-    start_x, start_y = current_pose.x, current_pose.y
-    velocity_msg.linear.x = speed
+* **Explanation** :
+* This function calls `move_forward` to move a straight distance equal to the side length.
+* It then calls `rotate_angle(90)` to rotate the turtle 90 degrees clockwise. This repeats four times to complete a square.
 
+---
+
+#### **2. Updating the Menu**
+
+The `main_menu` function was updated to include an option for the square trajectory:
+
+```python
+def main_menu():
     while not rospy.is_shutdown():
-        distance_moved = math.sqrt((current_pose.x - start_x) ** 2 +
-                                   (current_pose.y - start_y) ** 2)
-        if distance_moved >= distance:
-            break
-        cmd_vel_pub.publish(velocity_msg)
-        rate.sleep()
+        print("\nSelect a motion trajectory:")
+        print("1. Square")
+        print("2. Triangle")
+        print("3. Circular")
+        print("4. Spiral")
+        print("5. Point to Point")
+        print("6. Zigzag")
+        print("7. Exit")
 
-    velocity_msg.linear.x = 0
-    cmd_vel_pub.publish(velocity_msg)
+        try:
+            choice = int(input("Enter your choice (1-7): "))
+            if choice == 1:
+                rospy.loginfo("Square trajectory selected")
+                edge_length = float(input("Enter the side length of the square: "))
+                move_square(edge_length)  # Call the move_square function
+            elif choice == 2:
+                rospy.loginfo("Triangle trajectory selected")
+                # Placeholder for move_triangle()
+            elif choice == 3:
+                rospy.loginfo("Circular trajectory selected")
+                # Placeholder for move_circular()
+            elif choice == 4:
+                rospy.loginfo("Spiral trajectory selected")
+                # Placeholder for move_spiral()
+            elif choice == 5:
+                rospy.loginfo("Point-to-Point trajectory selected")
+                # Placeholder for move_point_to_point()
+            elif choice == 6:
+                rospy.loginfo("Zigzag trajectory selected")
+                # Placeholder for move_zigzag()
+            elif choice == 7:
+                rospy.loginfo("Exiting Turtle Trajectory Node.")
+                break
+            else:
+                print("Invalid choice. Please enter a number between 1 and 7.")
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
 ```
 
- **Explanation** :
-
-* **Purpose** : Moves the turtle forward by a specified distance.
-* **How It Works** :
-* Captures the turtle’s initial position (`start_x` and `start_y`).
-* Publishes a linear velocity command (`velocity_msg.linear.x`) to the `/turtle1/cmd_vel` topic.
-* Continuously calculates the Euclidean distance moved and stops when the turtle reaches or exceeds the target distance.
-* Sends a stop command to halt the turtle.
+* **Explanation** :
+* When the user selects option  **1** , they are prompted to input the side length for the square.
+* The program then calls the `move_square` function with the inputted length.
 
 ---
 
-#### **4. Implemented `rotate_angle` Function**
+### **How to Run and Verify**
 
- **Code** :
+1. **Start the ROS Core** :
 
-```python
-def rotate_angle(angle_deg, angular_speed=30.0):
-    """Rotate the turtle by a specified angle."""
-    global cmd_vel_pub, current_pose
-    velocity_msg = Twist()
-    rate = rospy.Rate(10)  # 10 Hz
-
-    angle_rad = math.radians(angle_deg)
-    start_theta = current_pose.theta
-    velocity_msg.angular.z = math.radians(angular_speed) if angle_rad > 0 else -math.radians(angular_speed)
-
-    while not rospy.is_shutdown():
-        current_angle = abs(current_pose.theta - start_theta)
-        if current_angle >= abs(angle_rad):
-            break
-        cmd_vel_pub.publish(velocity_msg)
-        rate.sleep()
-
-    velocity_msg.angular.z = 0
-    cmd_vel_pub.publish(velocity_msg)
+```bash
+   roscore
 ```
 
- **Explanation** :
+1. **Launch the Turtlesim Node** :
 
-* **Purpose** : Rotates the turtle by a specified angle (in degrees).
-* **How It Works** :
-* Converts the angle from degrees to radians.
-* Publishes angular velocity commands (`velocity_msg.angular.z`) to the `/turtle1/cmd_vel` topic.
-* Tracks the angle rotated using the difference between the current and initial `theta` values.
-* Stops when the desired rotation is completed.
-
----
-
-#### **5. Updated the `main()` Function**
-
- **Code** :
-
-```python
-def main():
-    global cmd_vel_pub
-
-    rospy.init_node('turtle_trajectory', anonymous=True)
-    rospy.loginfo("Turtle Trajectory Node Initialized")
-
-    # Initialize the publisher for cmd_vel
-    cmd_vel_pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
-
-    # Initialize the subscriber for pose updates
-    rospy.Subscriber('/turtle1/pose', Pose, pose_callback)
-
-    rospy.sleep(1)  # Wait for connections to establish
-    main_menu()
+```bash
+   rosrun turtlesim turtlesim_node
 ```
 
- **Explanation** :
+1. **Run the Trajectory Script** :
 
-* **Purpose** : Sets up the ROS node, initializes the publisher and subscriber, and starts the main menu.
-* **How It Works** :
-* Initializes the ROS node (`rospy.init_node`).
-* Publishes velocity commands to `/turtle1/cmd_vel` via the `cmd_vel_pub`.
-* Subscribes to the `/turtle1/pose` topic to update the turtle’s pose.
-* Calls `main_menu()` after ensuring all connections are established.
-
----
-
-#### **6. Tested Motion Functions**
-
-**Temporary Testing Code** (Added to the menu system for testing):
-
-```python
-if choice == 1:
-    rospy.loginfo("Testing move_forward function")
-    move_forward(2.0, speed=1.0)  # Example test: move forward 2 meters
-elif choice == 2:
-    rospy.loginfo("Testing rotate_angle function")
-    rotate_angle(90, angular_speed=30.0)  # Example test: rotate 90 degrees
+```bash
+   rosrun turtle_trajectory_pkg turtle_trajectory.py
 ```
 
- **Explanation** :
+1. **Verify the Square Trajectory** :
 
-* Temporarily added calls to `move_forward` and `rotate_angle` in the menu system to verify functionality.
-* These tests confirmed that the turtle moves as expected based on the utility functions.
-
----
-
-### **Keywords Summary**
-
-#### **Libraries**
-
-1. **`rospy`** :
-
-* Manages the ROS node and interactions.
-* Functions used: `rospy.init_node`, `rospy.Publisher`, `rospy.Subscriber`, `rospy.is_shutdown`, `rospy.Rate`, `rospy.sleep`.
-
-1. **`geometry_msgs.msg.Twist`** :
-
-* Used for controlling the turtle’s linear and angular velocities.
-
-1. **`turtlesim.msg.Pose`** :
-
-* Provides real-time position and orientation of the turtle.
-
-1. **`math`** :
-
-* Used for mathematical calculations such as converting degrees to radians and calculating distances.
+* Select option **1** from the menu.
+* Input a side length (e.g., `2.0`).
+* Observe the turtle moving in a square with the specified side length.
 
 ---
 
-#### **Variables**
+### **Expected Output**
 
-1. **`cmd_vel_pub`** :
-
-* A global publisher for sending velocity commands to the turtle.
-
-1. **`current_pose`** :
-
-* A global variable updated with the turtle’s latest position and orientation.
-
-1. **`velocity_msg`** :
-
-* An instance of `Twist` used to set linear and angular velocities.
+1. The program should print logs like:
+   ```
+   Square trajectory selected
+   Enter the side length of the square: 2.0
+   Completed square trajectory
+   ```
+2. The turtle should visibly move in a square path in the Turtlesim window.
 
 ---
-
-#### **Functions**
-
-1. **`pose_callback(pose)`** :
-
-* Updates the turtle’s current position and orientation.
-
-1. **`move_forward(distance, speed=1.0)`** :
-
-* Moves the turtle forward by a specified distance.
-
-1. **`rotate_angle(angle_deg, angular_speed=30.0)`** :
-
-* Rotates the turtle by a specified angle (in degrees).
-
-1. **`main()`** :
-
-* Sets up the ROS node, initializes the publisher and subscriber, and starts the main menu.
-
----
-
-This sequence, along with the detailed explanations and code snippets, can now be copied into `commit_message.md`. Let me know if you need help integrating or formatting this!

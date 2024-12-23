@@ -54,6 +54,12 @@ def rotate_angle(angle_deg, angular_speed=30.0):
     velocity_msg.angular.z = 0
     cmd_vel_pub.publish(velocity_msg)
 
+def move_square(edge_length):
+    """Move the turtle in a square trajectory."""
+    for _ in range(4):  # A square has four sides
+        move_forward(edge_length)
+        rotate_angle(90)  # Rotate 90 degrees for each corner
+    rospy.loginfo("Completed square trajectory")
 
 
 def main_menu():
@@ -72,7 +78,10 @@ def main_menu():
             choice = int(input("Enter your choice (1-7): "))
             if choice == 1:
                 rospy.loginfo("Square trajectory selected")
-                # Placeholder for move_square()
+                rospy.loginfo("Square trajectory selected")
+                edge_length = float(input("Enter the side length of the square: "))
+                move_square(edge_length)
+            
             elif choice == 2:
                 rospy.loginfo("Triangle trajectory selected")
                 # Placeholder for move_triangle()
